@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agents: Экономический анализ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 350px);
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            position: relative;
+        }
+        .panel-title {
+            color: #00d4ff;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .savings { grid-column: 1; grid-row: 1; }
+        .scenarios { grid-column: 2; grid-row: 1; }
+        .replacement { grid-column: 3; grid-row: 1; }
+        .first-mover { grid-column: 1; grid-row: 2; }
+        .additional { grid-column: 2; grid-row: 2; }
+        .forecast { grid-column: 3; grid-row: 2; }
+        .summary { grid-column: 1 / 4; grid-row: 3; }
+
+        .summary .chart-container {
+            height: 280px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="panel savings">
+            <div class="panel-title">📉 Экономия на HR (млн руб)</div>
+            <div class="chart-container">
+                <canvas id="savingsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel scenarios">
+            <div class="panel-title">📊 Сценарии автоматизации задач (%)</div>
+            <div class="chart-container">
+                <canvas id="scenariosChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel replacement">
+            <div class="panel-title">🥧 Заменяемость сотрудников по категориям</div>
+            <div class="chart-container">
+                <canvas id="replacementChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel first-mover">
+            <div class="panel-title">📈 First-Mover Advantage (млн руб)</div>
+            <div class="chart-container">
+                <canvas id="firstMoverChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel additional">
+            <div class="panel-title">💡 Дополнительные доходы (млн руб/год)</div>
+            <div class="chart-container">
+                <canvas id="additionalChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel forecast">
+            <div class="panel-title">🔮 Прогноз по сценариям (млрд руб)</div>
+            <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel summary">
+            <div class="panel-title">📈 Совокупный экономический эффект за 10 лет</div>
+            <div class="chart-container">
+                <canvas id="summaryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Общие настройки Chart.js
+        Chart.defaults.color = '#ffffff';
+        Chart.defaults.borderColor = '#333';
+        Chart.defaults.backgroundColor = '#333';
+
+        // Цветовая палитра Bloomberg
+        const colors = {
+            primary: '#00d4ff',
+            success: '#44ff88',
+            warning: '#ffaa00',
+            danger: '#ff4444',
+            info: '#8888ff',
+            secondary: '#888888'
+        };
+
+        // 1. Экономия на HR
+        new Chart(document.getElementById('savingsChart'), {
+            type: 'line',
+            data: {
+                labels: ['2025', '2026', '2027', '2028', '2029', '2030', '2031', '2032', '2033', '2034', '2035'],
+                datasets: [{
+                    label: 'Годовая экономия',
+                    data: [45, 89, 134, 185, 245, 312, 387, 475, 578, 695, 825],
+                    borderColor: colors.primary,
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }, {
+                    label: 'Накопительная (млрд)',
+                    data: [0.045, 0.134, 0.268, 0.453, 0.698, 1.010, 1.397, 1.872, 2.450, 3.145, 3.970],
+                    borderColor: colors.success,
+                    backgroundColor: 'rgba(68, 255, 136, 0.1)',
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#ffffff', font: { size: 10 } }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: '#333' },
+                        title: { display: true, text: 'млн руб', color: '#ffffff' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'млрд руб', color: '#ffffff' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 2. Сценарии автоматизации
+        new Chart(document.getElementById('scenariosChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Conservative', 'Moderate', 'Optimistic'],
+                datasets: [{
+                    label: 'Автоматизация задач (%)',
+                    data: [12.5, 35, 65],
+                    backgroundColor: [colors.warning, colors.primary, colors.success],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 80,
+                        grid: { color: '#333' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 3. Заменяемость сотрудников
+        new Chart(document.getElementById('replacementChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Инженеры (20%)', 'Аналитики (75%)', 'Юристы/Бухгалтеры (55%)', 'Менеджеры (35%)', 'Не заменяемы'],
+                datasets: [{
+                    data: [60, 225, 165, 105, 1445],
+                    backgroundColor: [
+                        colors.danger,
+                        colors.warning,
+                        colors.primary,
+                        colors.info,
+                        colors.secondary
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { 
+                            color: '#ffffff', 
+                            font: { size: 9 },
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+
+        // 4. First-Mover Advantage
+        new Chart(document.getElementById('firstMoverChart'), {
+            type: 'line',
+            data: {
+                labels: ['2025', '2026', '2027', '2028', '2029', '2030', '2031', '2032', '2033', '2034', '2035'],
+                datasets: [{
+                    label: 'Ранний внедряющий',
+                    data: [56, 111, 168, 231, 306, 390, 484, 594, 723, 869, 1031],
+                    borderColor: colors.success,
+                    backgroundColor: 'rgba(68, 255, 136, 0.1)',
+                    fill: false,
+                    tension: 0.3
+                }, {
+                    label: 'Поздний внедряющий',
+                    data: [0, 0, 0, 45, 89, 134, 185, 245, 312, 387, 475],
+                    borderColor: colors.danger,
+                    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                    fill: false,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#ffffff', font: { size: 10 } }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#333' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 5. Дополнительные доходы
+        new Chart(document.getElementById('additionalChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Отчетность', 'Business Dev', 'Strategy', 'Marketing', 'CorpDev'],
+                datasets: [{
+                    data: [125, 89, 156, 134, 98],
+                    backgroundColor: [
+                        colors.primary,
+                        colors.success,
+                        colors.warning,
+                        colors.info,
+                        colors.secondary
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#333' }
+                    },
+                    x: { 
+                        grid: { color: '#333' },
+                        ticks: { maxRotation: 45 }
+                    }
+                }
+            }
+        });
+
+        // 6. Прогноз по сценариям
+        new Chart(document.getElementById('forecastChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Conservative', 'Moderate', 'Optimistic'],
+                datasets: [{
+                    label: 'Экономия',
+                    data: [2.1, 3.9, 6.8],
+                    backgroundColor: colors.primary
+                }, {
+                    label: 'Доп. прибыль',
+                    data: [1.2, 2.8, 4.5],
+                    backgroundColor: colors.success
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#ffffff', font: { size: 10 } }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { color: '#333' }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        grid: { color: '#333' },
+                        title: { display: true, text: 'млрд руб', color: '#ffffff' }
+                    }
+                }
+            }
+        });
+
+        // 7. Совокупный эффект
+        new Chart(document.getElementById('summaryChart'), {
+            type: 'line',
+            data: {
+                labels: ['2025', '2026', '2027', '2028', '2029', '2030', '2031', '2032', '2033', '2034', '2035'],
+                datasets: [{
+                    label: 'Conservative (млрд)',
+                    data: [0.067, 0.156, 0.278, 0.445, 0.667, 0.956, 1.323, 1.781, 2.345, 3.028, 3.845],
+                    borderColor: colors.warning,
+                    backgroundColor: 'rgba(255, 170, 0, 0.1)',
+                    fill: false,
+                    tension: 0.3
+                }, {
+                    label: 'Moderate (млрд)',
+                    data: [0.125, 0.298, 0.534, 0.856, 1.287, 1.856, 2.587, 3.512, 4.667, 6.089, 7.823],
+                    borderColor: colors.primary,
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    fill: false,
+                    tension: 0.3
+                }, {
+                    label: 'Optimistic (млрд)',
+                    data: [0.203, 0.489, 0.887, 1.423, 2.134, 3.067, 4.289, 5.878, 7.923, 10.534, 13.845],
+                    borderColor: colors.success,
+                    backgroundColor: 'rgba(68, 255, 136, 0.1)',
+                    fill: false,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#ffffff', font: { size: 11 } }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#333' },
+                        title: { display: true, text: 'млрд руб', color: '#ffffff' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
