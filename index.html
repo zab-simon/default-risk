@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Россия: Панель рисков</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 300px);
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            position: relative;
+        }
+        .panel-title {
+            color: #00d4ff;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+        .gdp { grid-column: 1; grid-row: 1; }
+        .capital { grid-column: 2; grid-row: 1; }
+        .tech { grid-column: 3; grid-row: 1; }
+        .living { grid-column: 4; grid-row: 1; }
+        .business { grid-column: 1; grid-row: 2; }
+        .investment { grid-column: 2; grid-row: 2; }
+        .survival { grid-column: 3 / 5; grid-row: 2; }
+        .scenario { grid-column: 1; grid-row: 3; }
+        .risk-wall { grid-column: 2 / 4; grid-row: 3; }
+        .heatmap { grid-column: 4; grid-row: 3; }
+        .summary { grid-column: 1 / 5; grid-row: 4; }
+        
+        .investment-signal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            flex-direction: column;
+        }
+        .signal-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .signal-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .red { color: #ff4444; }
+        .amber { color: #ffaa00; }
+        .green { color: #44ff44; }
+        
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 2px;
+            height: 100%;
+        }
+        .heatmap-cell {
+            background: #333;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="panel gdp">
+            <div class="panel-title">📉 ВВП России (реальный рост, %)</div>
+            <div class="chart-container">
+                <canvas id="gdpChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel capital">
+            <div class="panel-title">💸 Трансграничное движение капитала</div>
+            <div class="chart-container">
+                <canvas id="capitalChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel tech">
+            <div class="panel-title">⚙️ Технологическое развитие</div>
+            <div class="chart-container">
+                <canvas id="techChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel living">
+            <div class="panel-title">👥 Уровень жизни населения</div>
+            <div class="chart-container">
+                <canvas id="livingChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel business">
+            <div class="panel-title">🏢 Частный бизнес / Госкомпании</div>
+            <div class="chart-container">
+                <canvas id="businessChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel investment">
+            <div class="panel-title">🛑 Инвестиционный сигнал</div>
+            <div class="investment-signal">
+                <div class="signal-icon red">🚫</div>
+                <div class="signal-text red">НЕ ИНВЕСТИРОВАТЬ</div>
+            </div>
+        </div>
+
+        <div class="panel survival">
+            <div class="panel-title">⚠️ Hazard/Survival: Вероятность дефолта РФ</div>
+            <div class="chart-container">
+                <canvas id="survivalChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel scenario">
+            <div class="panel-title">🥧 Сценарии 2028</div>
+            <div class="chart-container">
+                <canvas id="scenarioChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel risk-wall">
+            <div class="panel-title">📈 Risk Wall: Влияние на активы (%)</div>
+            <div class="chart-container">
+                <canvas id="riskChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel heatmap">
+            <div class="panel-title">🔥 Корреляции активов</div>
+            <div class="heatmap-grid" id="heatmapGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Общие настройки Chart.js
+        Chart.defaults.color = '#ffffff';
+        Chart.defaults.borderColor = '#333';
+        Chart.defaults.backgroundColor = '#333';
+
+        // 1. ВВП России
+        new Chart(document.getElementById('gdpChart'), {
+            type: 'line',
+            data: {
+                labels: ['2025', '2026', '2027', '2028'],
+                datasets: [{
+                    data: [0, -2.1, -3.4, -4.8],
+                    borderColor: '#ff4444',
+                    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 2,
+                        min: -6,
+                        grid: { color: '#333' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 2. Трансграничное движение капитала
+        new Chart(document.getElementById('capitalChart'), {
+            type: 'line',
+            data: {
+                labels: ['авг 2025', 'дек 2025', 'июн 2026', 'дек 2026', 'июн 2027', 'дек 2027', 'июн 2028'],
+                datasets: [{
+                    data: [100, 85, 72, 58, 45, 35, 28],
+                    borderColor: '#ffaa00',
+                    backgroundColor: 'rgba(255, 170, 0, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 120,
+                        grid: { color: '#333' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 3. Технологическое развитие
+        new Chart(document.getElementById('techChart'), {
+            type: 'bar',
+            data: {
+                labels: ['2025', '2026', '2027', '2028'],
+                datasets: [{
+                    data: [100, 94, 87, 79],
+                    backgroundColor: ['#44ff44', '#ffaa00', '#ff8800', '#ff4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        min: 70,
+                        max: 105,
+                        grid: { color: '#333' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 4. Уровень жизни
+        new Chart(document.getElementById('livingChart'), {
+            type: 'line',
+            data: {
+                labels: ['2025', '2026', '2027', '2028'],
+                datasets: [{
+                    data: [100, 92, 83, 71],
+                    borderColor: '#ff6644',
+                    backgroundColor: 'rgba(255, 102, 68, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        min: 60,
+                        max: 105,
+                        grid: { color: '#333' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 5. Частный бизнес / Госкомпании
+        new Chart(document.getElementById('businessChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Госкомпании', 'Частный бизнес'],
+                datasets: [{
+                    data: [75, 25],
+                    backgroundColor: ['#ff4444', '#0088ff'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#ffffff', font: { size: 10 } }
+                    }
+                }
+            }
+        });
+
+        // 7. Survival кривая
+        new Chart(document.getElementById('survivalChart'), {
+            type: 'line',
+            data: {
+                labels: ['2025', '2026', '2027', '2028', '2029', '2030', '2031', '2032', '2033', '2034', '2035'],
+                datasets: [{
+                    label: 'Вероятность дефолта (%)',
+                    data: [2, 3, 5, 12, 18, 25, 38, 52, 68, 78, 85],
+                    borderColor: '#ff4444',
+                    backgroundColor: 'rgba(255, 68, 68, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#ffffff', font: { size: 10 } }
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: { color: '#333' }
+                    },
+                    x: { grid: { color: '#333' } }
+                }
+            }
+        });
+
+        // 8. Scenario Pie
+        new Chart(document.getElementById('scenarioChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Relief', 'Status Quo', 'Tighten'],
+                datasets: [{
+                    data: [18, 35, 47],
+                    backgroundColor: ['#44ff44', '#ffaa00', '#ff4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#ffffff', font: { size: 10 } }
+                    }
+                }
+            }
+        });
+
+        // 9. Risk Wall
+        new Chart(document.getElementById('riskChart'), {
+            type: 'bar',
+            data: {
+                labels: ['MOEX', 'Банки', 'Экспорт', 'USD/RUB', 'ОФЗ', 'Евробонды'],
+                datasets: [{
+                    data: [-15, -25, -12, +20, +300, +400],
+                    backgroundColor: ['#ff4444', '#ff2222', '#ff6644', '#44ff44', '#ffaa00', '#ff8800']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        min: -30,
+                        max: 450,
+                        grid: { color: '#333' }
+                    },
+                    x: {
+                        grid: { color: '#333' },
+                        ticks: { maxRotation: 45 }
+                    }
+                }
+            }
+        });
+
+        // 10. Heatmap корреляций
+        const assets = ['MOEX', 'Банки', 'Экспорт', 'USD/RUB', 'ОФЗ', 'Евробонды'];
+        const correlations = [
+            [1.0, 0.85, 0.72, -0.65, -0.45, -0.52],
+            [0.85, 1.0, 0.68, -0.71, -0.38, -0.48],
+            [0.72, 0.68, 1.0, -0.59, -0.32, -0.41],
+            [-0.65, -0.71, -0.59, 1.0, 0.28, 0.35],
+            [-0.45, -0.38, -0.32, 0.28, 1.0, 0.82],
+            [-0.52, -0.48, -0.41, 0.35, 0.82, 1.0]
+        ];
+
+        const heatmapGrid = document.getElementById('heatmapGrid');
+        for (let i = 0; i < 6; i++) {
+            for (let j = 0; j < 6; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-cell';
+                const corr = correlations[i][j];
+                const intensity = Math.abs(corr);
+                const color = corr > 0 ? 
+                    `rgba(68, 255, 68, ${intensity})` : 
+                    `rgba(255, 68, 68, ${intensity})`;
+                cell.style.backgroundColor = color;
+                cell.textContent = corr.toFixed(2);
+                heatmapGrid.appendChild(cell);
+            }
+        }
+    </script>
+</body>
+</html>
